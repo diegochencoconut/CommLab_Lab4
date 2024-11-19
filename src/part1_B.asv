@@ -217,35 +217,58 @@ for loop = 1:MAXLOOP
     dataIn = int2bit(dataSymbolIn, log2(md_order));
     error_bit(loop) = biterr(rx_bit, dataIn);
     fprintf("Bit error rate: %f\n", error_bit(loop) / length(dataIn));
+
+    ideal_modulation = qammod(0:md_order-1, md_order);
+
+    current_figure = figure('visible', 'off');
     
-    if error_bit(loop) / length(dataIn) <= 0.1
-        break;
-    end
+    set(gcf, "Position", [300,300,560,280]);
+    subplot(1, 2, 1);
+    scatter(real(rx_recovered_original), imag(rx_recovered_original), 'Marker', '.'); hold on
+    scatter(real(ideal_modulation), imag(ideal_modulation));
+    xlim([-2, 2]);
+    ylim([-2, 2]);
+    
+    title("Before equalization");
+    subplot(1, 2, 2);
+    scatter(real(rx_recovered), imag(rx_recovered), 'Marker', '.'); hold on
+    scatter(real(ideal_modulation), imag(ideal_modulation));
+    xlim([-2, 2]);
+    ylim([-2, 2]);
+    
+    title("After equalization");
+    sgtitle("Signal Constellation");
+
+    filename = sprintf("img/constellation_%d", loop);
+    saveas(current_figure, filename, "png");
+
+    current_figure = figure('visible', 'off');
+    
+    set(gcf, "Position", [300,300,560,280]);
+    subplot(1, 2, 1);
+    scatter(real(rx_recovered_original), imag(rx_recovered_original), 'Marker', '.'); hold on
+    scatter(real(ideal_modulation), imag(ideal_modulation));
+    xlim([-2, 2]);
+    ylim([-2, 2]);
+    
+    title("Before equalization");
+    subplot(1, 2, 2);
+    scatter(real(rx_recovered), imag(rx_recovered), 'Marker', '.'); hold on
+    scatter(real(ideal_modulation), imag(ideal_modulation));
+    xlim([-2, 2]);
+    ylim([-2, 2]);
+    
+    title("After equalization");
+    sgtitle("Signal Constellation");
+
+    filename = sprintf("img/constellation_%d", loop);
+    saveas(current_figure, filename, "png");
+    
+    % if error_bit / length(dataIn) <= 0.1
+    %     break;
+    % end
 end
 
 %% Release USRP
 release(radio_tx);
 release(radio_rx);
-    
-%% Final plot
-
-ideal_modulation = qammod(0:md_order-1, md_order);
-
-figure;
-
-set(gcf, "Position", [300,300,560,280]);
-subplot(1, 2, 1);
-scatter(real(rx_recovered_original), imag(rx_recovered_original), 'Marker', '.'); hold on
-scatter(real(ideal_modulation), imag(ideal_modulation));
-xlim([-2, 2]);
-ylim([-2, 2]);
-
-title("Before equalization");
-subplot(1, 2, 2);
-scatter(real(rx_recovered), imag(rx_recovered), 'Marker', '.'); hold on
-scatter(real(ideal_modulation), imag(ideal_modulation));
-xlim([-2, 2]);
-ylim([-2, 2]);
-
-title("After equalization");
-sgtitle("Signal Constellation");
