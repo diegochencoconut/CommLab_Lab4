@@ -1,4 +1,5 @@
 img/
 fig/
 src/img/
-src/sample.mat
+src/*.mat
+*.asv

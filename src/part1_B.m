@@ -164,10 +164,45 @@ for loop = 1:MAXLOOP
         continue;
     end
 
-    preamble_signal = [STS_signal; LTS_signal];
-    rx_power = rms(rx_obtained_original)^2;
+    %% Estimation Using the Short Training
+    STS_received = rx_obtained_original(1:length(STS_signal));
+    STS_for_alpha_estimation = STS_received(end-32+1:end);
+    
+    % Estimate alpha_ST
+    alpha_ST = 0;
+    for ii = 1:16
+        alpha_ST = alpha_ST + conj(STS_for_alpha_estimation(ii))*STS_for_alpha_estimation(ii+16);
+    end
+    
+    alpha_ST = phase(alpha_ST);
+    alpha_ST = alpha_ST/16;
+    
+    %% Estimation and Correction Using Long Training
+    LTS_received = rx_obtained_original(length(STS_signal)+1+CP_size*2:length(STS_signal)+length(LTS_signal));   
+    alpha_LT = 0;
+    
+    for ii = 1:64
+        alpha_LT = alpha_LT + conj(LTS_received(ii))*LTS_received(ii+64);
+    end
+    
+    alpha_LT = phase(alpha_LT);
+    alpha_LT = alpha_LT/64;
+    
+    % LTS_alphaLT_corrected = LTS_alphaST_corrected .* exp(-1i * m * alpha_LT);
+    % LTS_alphaLT_corrected = LTS_received .* exp(-1i * m * alpha_LT);
+    
+    % alpha = alpha_ST + alpha_LT;
+    deltaf_ST = alpha_ST*freq_sample/(2*pi*16);
+    deltaf_LT = alpha_LT*freq_sample/(2*pi*64);
+    
+    time = (0:length(rx_obtained_original)-1) / freq_sample;
+    time = time';
+    rx_cfo_corrected = rx_obtained_original .* exp(-1i*2*pi*(deltaf_ST+deltaf_LT).*time);
+
+    %% Power equalization
+    rx_power = rms(rx_cfo_corrected)^2;
     tx_power = rms(real_signal)^2;
-    rx_obtained = rx_obtained_original * sqrt((tx_power) / (rx_power));
+    rx_obtained = rx_cfo_corrected * sqrt((tx_power) / (rx_power));
 
     %% Process OFDM symbols
     rx_recovered = zeros(data_subcarrier_num*symbolnum, 1);
@@ -235,14 +270,29 @@ figure;
 
 set(gcf, "Position", [300,300,560,280]);
 subplot(1, 2, 1);
-scatter(real(rx_recovered_original), imag(rx_recovered_original), 'Marker', '.'); hold on
+rx_recovered_original_0 = rx_recovered_original(dataMod == qammod(0, md_order));
+rx_recovered_original_1 = rx_recovered_original(dataMod == qammod(1, md_order));
+rx_recovered_original_2 = rx_recovered_original(dataMod == qammod(2, md_order));
+rx_recovered_original_3 = rx_recovered_original(dataMod == qammod(3, md_order));
+scatter(real(rx_recovered_original_0), imag(rx_recovered_original_0), 'Marker', '.'); hold on
+scatter(real(rx_recovered_original_1), imag(rx_recovered_original_1), 'Marker', '.');
+scatter(real(rx_recovered_original_2), imag(rx_recovered_original_2), 'Marker', '.'); 
+scatter(real(rx_recovered_original_3), imag(rx_recovered_original_3), 'Marker', '.'); 
 scatter(real(ideal_modulation), imag(ideal_modulation));
 xlim([-2, 2]);
 ylim([-2, 2]);
+legend('0', '1', '2', '3', 'ideal');
 
 title("Before equalization");
 subplot(1, 2, 2);
-scatter(real(rx_recovered), imag(rx_recovered), 'Marker', '.'); hold on
+rx_recovered_0 = rx_recovered(dataMod == qammod(0, md_order));
+rx_recovered_1 = rx_recovered(dataMod == qammod(1, md_order));
+rx_recovered_2 = rx_recovered(dataMod == qammod(2, md_order));
+rx_recovered_3 = rx_recovered(dataMod == qammod(3, md_order));
+scatter(real(rx_recovered_0), imag(rx_recovered_0), 'Marker', '.'); hold on
+scatter(real(rx_recovered_1), imag(rx_recovered_1), 'Marker', '.');
+scatter(real(rx_recovered_2), imag(rx_recovered_2), 'Marker', '.'); 
+scatter(real(rx_recovered_3), imag(rx_recovered_3), 'Marker', '.'); 
 scatter(real(ideal_modulation), imag(ideal_modulation));
 xlim([-2, 2]);
 ylim([-2, 2]);
